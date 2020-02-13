@@ -198,7 +198,6 @@ class CoAPIngest(aiocoap.resource.Resource):
                     {
                         "timestamp": "2017-01-02T01:02:03.23232Z-05:00",
                         "asset": "pump1",
-                        "key": "80a43623-ebe5-40d6-8d80-3f892da9b3b4",
                         "readings": {
                             "velocity": "500",
                             "temperature": {
@@ -222,7 +221,6 @@ class CoAPIngest(aiocoap.resource.Resource):
 
             asset = payload['asset']
             timestamp = payload['timestamp']
-            key = payload['key']
 
             # readings or sensor_values are optional
             try:
@@ -237,7 +235,6 @@ class CoAPIngest(aiocoap.resource.Resource):
             data = {
                 'asset': asset,
                 'timestamp': timestamp,
-                'key': key,
                 'readings': readings
             }
             async_ingest.ingest_callback(c_callback, c_ingest_ref, data)
