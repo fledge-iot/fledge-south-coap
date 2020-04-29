@@ -2,7 +2,7 @@
 .. |coap_1| image:: images/coap_1.jpg
 
 CoAP
-===
+====
 
 The *fledge-south-coap* plugin implements a passive CoAP listener that will accept data from sensors implementing the CoAP protocol. CoAP is an Internet application protocol for constrained devices to send data over the internet, it is similar to HTTP but may be run over UDP or TCP and is considerably simplified to allow implementation in small footprint devices. CoAP stands for Constrained Application Protocol.
 
