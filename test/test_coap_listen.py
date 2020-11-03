@@ -60,7 +60,7 @@ def test_plugin_contract():
 def test_plugin_info():
     assert coap.plugin_info() == {
         'name': 'CoAP Plugin',
-        'version': '1.8.1',
+        'version': '1.8.2',
         'mode': 'async',
         'type': 'south',
         'interface': '1.0',
