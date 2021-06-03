@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # FLEDGE_BEGIN
-# See: http://fledge.readthedocs.io/
+# See: http://fledge-iot.readthedocs.io/
 # FLEDGE_END
 
 """Unit test for python.fledge.plugins.south.coap"""
@@ -60,7 +60,7 @@ def test_plugin_contract():
 def test_plugin_info():
     assert coap.plugin_info() == {
         'name': 'CoAP Plugin',
-        'version': '1.9.0',
+        'version': '1.9.1',
         'mode': 'async',
         'type': 'south',
         'interface': '1.0',
