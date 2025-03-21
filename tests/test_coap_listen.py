@@ -55,12 +55,10 @@ def test_plugin_contract():
     assert callable(getattr(coap, 'plugin_register_ingest'))
 
 
-@pytest.allure.feature("unit")
-@pytest.allure.story("plugin", "south", "coap")
 def test_plugin_info():
     assert coap.plugin_info() == {
         'name': 'CoAP Plugin',
-        'version': '2.6.0',
+        'version': '3.0.0',
         'mode': 'async',
         'type': 'south',
         'interface': '1.0',
@@ -68,14 +66,10 @@ def test_plugin_info():
     }
 
 
-@pytest.allure.feature("unit")
-@pytest.allure.story("plugin", "south", "coap")
 def test_plugin_init():
     assert coap.plugin_init(config) == config
 
 
-@pytest.allure.feature("unit")
-@pytest.allure.story("plugin", "south", "coap")
 @pytest.mark.asyncio
 async def test_plugin_start(mocker, unused_port):
     # GIVEN
@@ -106,8 +100,6 @@ async def test_plugin_start(mocker, unused_port):
     coap.t._stop()
 
 
-@pytest.allure.feature("unit")
-@pytest.allure.story("plugin", "south", "coap")
 @pytest.mark.asyncio
 async def test_plugin_reconfigure(mocker, unused_port):
     # GIVEN
@@ -143,8 +135,6 @@ async def test_plugin_reconfigure(mocker, unused_port):
     coap.t._stop()
 
 
-@pytest.allure.feature("unit")
-@pytest.allure.story("plugin", "south", "coap")
 @pytest.mark.asyncio
 async def test_plugin_shutdown(mocker, unused_port):
     # GIVEN
@@ -176,8 +166,6 @@ async def test_plugin_shutdown(mocker, unused_port):
     coap.t._stop()
 
 
-@pytest.allure.feature("unit")
-@pytest.allure.story("services", "south", "ingest")
 class TestCoapSouthIngest(object):
     """Unit tests fledge.plugins.south.coap.coap.CoAPIngest
     """
