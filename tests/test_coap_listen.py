@@ -44,6 +44,57 @@ _NEW_CONFIG = {
 }
 
 
+def cleanup_plugin():
+    """Properly cleanup the plugin after tests"""
+    # First, try the normal plugin shutdown
+    try:
+        if hasattr(coap, 'aiocoap_ctx') and coap.aiocoap_ctx is not None:
+            coap.plugin_shutdown(config)
+    except Exception:
+        pass  # Ignore shutdown errors
+
+    # Now handle the thread cleanup that the plugin doesn't do
+    if hasattr(coap, 't') and coap.t is not None:
+        try:
+            # Stop the event loop if it's still running
+            if hasattr(coap, 'loop') and coap.loop is not None:
+                try:
+                    if coap.loop.is_running():
+                        coap.loop.call_soon_threadsafe(coap.loop.stop)
+                except RuntimeError:
+                    # Loop might already be stopped
+                    pass
+
+            # Wait for the thread to finish
+            if coap.t.is_alive():
+                coap.t.join(timeout=2.0)
+
+                # If thread is still alive after timeout, force cleanup
+                if coap.t.is_alive():
+                    try:
+                        # Force thread cleanup for Python 3.8+
+                        coap.t._tstate_lock = None
+                        coap.t._stop()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    # Clean up the event loop if it exists
+    if hasattr(coap, 'loop') and coap.loop is not None:
+        try:
+            if not coap.loop.is_closed():
+                coap.loop.close()
+        except Exception:
+            pass
+
+    # Reset all global variables to ensure clean state for next test
+    coap.aiocoap_ctx = None
+    coap._task = None
+    coap.loop = None
+    coap.t = None
+
+
 def test_plugin_contract():
     # Evaluates if the plugin has all the required methods
     assert callable(getattr(coap, 'plugin_info'))
@@ -51,14 +102,13 @@ def test_plugin_contract():
     assert callable(getattr(coap, 'plugin_start'))
     assert callable(getattr(coap, 'plugin_shutdown'))
     assert callable(getattr(coap, 'plugin_reconfigure'))
-
     assert callable(getattr(coap, 'plugin_register_ingest'))
 
 
 def test_plugin_info():
     assert coap.plugin_info() == {
         'name': 'CoAP Plugin',
-        'version': '3.0.0',
+        'version': '3.1.0',
         'mode': 'async',
         'type': 'south',
         'interface': '1.0',
@@ -85,19 +135,18 @@ async def test_plugin_start(mocker, unused_port):
     log_info = mocker.patch.object(coap._LOGGER, "info")
     assert coap.aiocoap_ctx is None
 
-    # WHEN
-    coap.plugin_start(config)
-    await asyncio.sleep(.3)  # required to allow ensure_future task to complete
+    try:
+        # WHEN
+        coap.plugin_start(config)
+        await asyncio.sleep(.3)  # required to allow ensure_future task to complete
 
-    # THEN
-    assert coap.aiocoap_ctx is not None
-    assert 1 == log_info.call_count
-    calls = [call('CoAP listener started on port {} with uri {}'.format(config['port']['value'], config['uri']['value']))]
-    log_info.assert_has_calls(calls, any_order=True)
-
-    coap.loop.stop()
-    coap.t._tstate_lock = None
-    coap.t._stop()
+        # THEN
+        assert coap.aiocoap_ctx is not None
+        assert 1 == log_info.call_count
+        calls = [call('CoAP listener started on port {} with uri {}'.format(config['port']['value'], config['uri']['value']))]
+        log_info.assert_has_calls(calls, any_order=True)
+    finally:
+        cleanup_plugin()
 
 
 @pytest.mark.asyncio
@@ -116,23 +165,22 @@ async def test_plugin_reconfigure(mocker, unused_port):
     new_config['uri']['value'] = new_config['uri']['default']
     log_info = mocker.patch.object(coap._LOGGER, "info")
 
-    # WHEN
-    new_handle = coap.plugin_reconfigure(config, new_config)
-    await asyncio.sleep(.3)  # required to allow ensure_future task to complete
+    try:
+        # WHEN
+        new_handle = coap.plugin_reconfigure(config, new_config)
+        await asyncio.sleep(.3)  # required to allow ensure_future task to complete
 
-    # THEN
-    assert new_config == new_handle
+        # THEN
+        assert new_config == new_handle
 
-    # TODO: assert plugin_shutdown, plugin_init, plugin_start called
-    assert 3 == log_info.call_count
-    calls = [call("Old config for CoAP plugin {} \n new config {}".format(config, new_config)),
-             call('Stopping South CoAP plugin...'),
-             call('CoAP listener started on port 1234 with uri sensor-values')]
-    log_info.assert_has_calls(calls, any_order=True)
-
-    coap.loop.stop()
-    coap.t._tstate_lock = None
-    coap.t._stop()
+        # TODO: assert plugin_shutdown, plugin_init, plugin_start called
+        assert 3 == log_info.call_count
+        calls = [call("Old config for CoAP plugin {} \n new config {}".format(config, new_config)),
+                 call('Stopping South CoAP plugin...'),
+                 call('CoAP listener started on port 1234 with uri sensor-values')]
+        log_info.assert_has_calls(calls, any_order=True)
+    finally:
+        cleanup_plugin()
 
 
 @pytest.mark.asyncio
@@ -149,21 +197,20 @@ async def test_plugin_shutdown(mocker, unused_port):
     log_exception = mocker.patch.object(coap._LOGGER, "exception")
     log_info = mocker.patch.object(coap._LOGGER, "info")
 
-    coap.plugin_start(config)
-    await asyncio.sleep(.3)  # required to allow ensure_future task to complete
+    try:
+        coap.plugin_start(config)
+        await asyncio.sleep(.3)  # required to allow ensure_future task to complete
 
-    # WHEN
-    coap.plugin_shutdown(config)
+        # WHEN
+        coap.plugin_shutdown(config)
 
-    # THEN
-    assert 2 == log_info.call_count  # includes start call log as well, as a GIVEN condition
-    stop_call = [call('Stopping South CoAP plugin...')]
-    log_info.assert_has_calls(stop_call, any_order=True)
-    assert 0 == log_exception.call_count
-
-    coap.loop.stop()
-    coap.t._tstate_lock = None
-    coap.t._stop()
+        # THEN
+        assert 2 == log_info.call_count  # includes start call log as well, as a GIVEN condition
+        stop_call = [call('Stopping South CoAP plugin...')]
+        log_info.assert_has_calls(stop_call, any_order=True)
+        assert 0 == log_exception.call_count
+    finally:
+        cleanup_plugin()
 
 
 class TestCoapSouthIngest(object):
